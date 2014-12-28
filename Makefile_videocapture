@@ -1,0 +1,16 @@
+TOP_DIR := $(shell pwd)
+APP = $(TOP_DIR)/bin/test_x264
+
+CC = gcc
+CFLAGS = -g
+LIBS = -lpthread -lm #-lx264 #-lavcodec -lswscale -lavutil
+DEP_LIBS = -L$(TOP_DIR)/lib
+HEADER = -I$(TOP_DIR)/include
+OBJS =  src/test_video_capture.c  include/video_capture.c #include/x264_code.c include/file_operate.c include/yuyv2yuv420p.c #src/test_x264.c
+
+all:  $(OBJS)
+	$(CC) -g -o $(APP) $(OBJS) $(HEADER) $(LIBS)
+#$(CC) -g -o $(APP) $(OBJS) $(HEADER) $(DEP_LIBS) $(LIBS) -DX264
+
+clean:
+	rm -f *.o a.out $(APP) core *~
