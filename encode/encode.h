@@ -23,4 +23,3 @@
 #define SIZE      ((WIDTH * HEIGHT16 * 3)/2)
 
 int openMAX_encode_fd(struct camera*, FILE *, FILE*);
-//int openMAX_encode_fd(int , FILE*);
