@@ -69,8 +69,9 @@ print_def(OMX_PARAM_PORTDEFINITIONTYPE def)
 }
 
 static int
-video_encode_test(int fd, char *outputfilename)
+openMAX_encode_fd(int yuv_fd, FILE*h264_fp)// char *outputfilename)
 {
+
    OMX_VIDEO_PARAM_PORTFORMATTYPE format;
    OMX_PARAM_PORTDEFINITIONTYPE def;
    COMPONENT_T *video_encode = NULL;
@@ -81,7 +82,6 @@ video_encode_test(int fd, char *outputfilename)
    ILCLIENT_T *client;
    int status = 0;
    int framenumber = 0;
-   FILE *outf;
 
    memset(list, 0, sizeof(list));
 
@@ -215,11 +215,6 @@ video_encode_test(int fd, char *outputfilename)
    printf("encode to executing...\n");
    ilclient_change_component_state(video_encode, OMX_StateExecuting);
 
-   outf = fopen(outputfilename, "w");
-   if (outf == NULL) {
-      printf("Failed to open '%s' for writing video\n", outputfilename);
-      exit(1);
-   }
 
    printf("looping for buffers...\n");
 
@@ -228,7 +223,7 @@ video_encode_test(int fd, char *outputfilename)
    //int frame_len = 0;
    ssize_t frame_len = 0;
    struct timeval tm;
-   int ret_code = 0;
+   int ret_code = 1;
    int  buf_size = SIZE;
    do {
       buf = ilclient_get_input_buffer(video_encode, 200, 1);
@@ -239,10 +234,10 @@ video_encode_test(int fd, char *outputfilename)
          char *frame = (char*)buf->pBuffer;
          for(;;){
 	        FD_ZERO(&fds);
-	        FD_SET(fd, &fds);
+	        FD_SET(yuv_fd, &fds);
 	        tm.tv_sec = 2;
 	        tm.tv_usec = 0;
-	        int ret = select(fd + 1, &fds, NULL, NULL, &tm);
+	        int ret = select(yuv_fd + 1, &fds, NULL, NULL, &tm);
 	        switch(ret)
 	        {
 	        case -1:
@@ -259,9 +254,10 @@ video_encode_test(int fd, char *outputfilename)
 		    default:
 	            /* fill it */
 	            //generate_test_card(buf->pBuffer, &buf->nFilledLen, framenumber++);
-                framenumber +=1;
-                frame_len = read(fd, frame, buf_size);
+                frame_len = read(yuv_fd, frame, buf_size);
                 if(frame_len == 0){
+                    framenumber +=1;
+                    printf("read frame end!\n");
                     ret_code = 0;
                 } else if(frame_len != buf_size) {
                     printf("want to read: %d\n", buf_size);
@@ -270,6 +266,7 @@ video_encode_test(int fd, char *outputfilename)
                     frame = frame + frame_len;
                     //fwrite(pic, frame_len, 1, fp);
                 } else {
+                    framenumber +=1;
                     printf("read frame success!\n");
                     ret_code = 0;
                 }
@@ -307,7 +304,7 @@ video_encode_test(int fd, char *outputfilename)
                  printf("\n");
              }
 
-             r = fwrite(out->pBuffer, 1, out->nFilledLen, outf);
+             r = fwrite(out->pBuffer, 1, out->nFilledLen, h264_fp);
              if (r != out->nFilledLen) {
                  printf("fwrite: Error emptying buffer: %d!\n", r);
              }
@@ -332,7 +329,6 @@ finally:
    }
    while (framenumber < NUMFRAMES);
 
-   fclose(outf);
 
    printf("Teardown.\n");
 
@@ -354,18 +350,31 @@ finally:
 int
 main(int argc, char **argv)
 {
-   if (argc < 2) {
+   if (argc != 3) {
       printf("Usage: %s <filename>\n", argv[0]);
       exit(1);
    }
-   int yuv_fd = open("test.yuv", O_RDONLY, 0);
+
+   int yuv_fd = open(argv[1], O_RDONLY, 0);
    if (yuv_fd == -1) {
-      printf("open %s error : %s", "test.yuv", strerror(errno));
+      printf("open %s error : %s", argv[1], strerror(errno));
       return -1;
    }
+
+   FILE *h264_fp;
+   h264_fp = fopen(argv[2], "w");
+   if (h264_fp == NULL) {
+      printf("Failed to open '%s' for writing video\n", argv[2]);
+      exit(1);
+   }
+
    bcm_host_init();
-   int ret; 
-   ret = video_encode_test(yuv_fd, argv[1]);
+   printf("file : %s %s\n", argv[1], argv[2]);
+
+   int ret = 0; 
+   ret = openMAX_encode_fd(yuv_fd, h264_fp);
+
    close(yuv_fd);
+   fclose(h264_fp);
    return ret;
 }
