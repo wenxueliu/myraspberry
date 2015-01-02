@@ -29,27 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Video encode demo using OpenMAX IL though the ilcient helper library
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/select.h>
+#include "encode.h"
 
-#include "bcm_host.h"
-#include "ilclient.h"
-
-#define NUMFRAMES 100
-#define WIDTH     640
-#define PITCH     ((WIDTH+31)&~31)
-#define HEIGHT    ((WIDTH)*12/16)
-#define HEIGHT16  ((HEIGHT+15)&~15)
-#define SIZE      ((WIDTH * HEIGHT16 * 3)/2)
-
-static void
-print_def(OMX_PARAM_PORTDEFINITIONTYPE def)
+static void print_def(OMX_PARAM_PORTDEFINITIONTYPE def)
 {
    printf("Port %u: %s %u/%u %u %u %s,%s,%s %ux%u %ux%u @%u %u\n",
 	  def.nPortIndex,
@@ -68,8 +50,8 @@ print_def(OMX_PARAM_PORTDEFINITIONTYPE def)
 	  def.format.video.xFramerate, def.format.video.eColorFormat);
 }
 
-static int
-openMAX_encode_fd(int yuv_fd, FILE*h264_fp)// char *outputfilename)
+
+int openMAX_encode_fd(int yuv_fd, FILE*h264_fp)
 {
 
    OMX_VIDEO_PARAM_PORTFORMATTYPE format;
@@ -347,8 +329,8 @@ finally:
    return status;
 }
 
-int
-main(int argc, char **argv)
+
+int main(int argc, char **argv)
 {
    if (argc != 3) {
       printf("Usage: %s <filename>\n", argv[0]);
