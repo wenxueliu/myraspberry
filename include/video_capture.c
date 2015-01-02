@@ -119,9 +119,9 @@ int init_camera(struct camera *cam)
 	fmt->fmt.pix.height = cam->height;
     //TODO more format V4L2_PIX_FMT_YUYV V4L2_PIX_FMT_YVU420
 	//fmt->fmt.pix.pixelformat = V4L2_PIX_FMT_H264;//V4L2_PIX_FMT_YUYV;
-	fmt->fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-	fmt->fmt.pix.field = V4L2_FIELD_INTERLACED;
-	//fmt->fmt.pix.field = V4L2_FIELD_ANY;
+	fmt->fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+	//fmt->fmt.pix.field = V4L2_FIELD_INTERLACED;
+	fmt->fmt.pix.field = V4L2_FIELD_ANY;
 
 	//set the video format
 	if (-1 == ioctl(cam->camera_fd, VIDIOC_S_FMT, fmt))

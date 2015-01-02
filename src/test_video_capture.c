@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -6,8 +5,9 @@
 #include <sys/types.h>
 #include <sys/select.h>
 #include <unistd.h>
-#include <../include/sdf.h>
-#include <../include/video_capture.h>
+#include <errno.h>
+#include "../include/sdf.h"
+#include "../include/video_capture.h"
 
 const char *filename = "test.yuv\0";
 FILE *fp = NULL;
@@ -31,7 +31,7 @@ static int maim_loop(struct camera *cam)
         frame_len = 0;
         memset(pic, 0, cam->width * cam->height * 2);
 		printf("this is the %d th frame\n", count);
-		if ( count++ > 100 ) {
+		if ( count++ > 50 ) {
 			printf("success exit\n");
             free(pic);
 			break;

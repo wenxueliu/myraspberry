@@ -1,5 +1,5 @@
 TOP_DIR := $(shell pwd)
-APP = $(TOP_DIR)/bin/test_x264
+APP = $(TOP_DIR)/bin/test_capture
 
 CC = gcc
 CFLAGS = -g
