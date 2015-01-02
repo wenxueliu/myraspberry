@@ -1,0 +1,8 @@
+*.o
+*.yuv
+*.x264
+*.mp4
+Makefile
+bin/
+*.layout
+*~.
