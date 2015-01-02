@@ -51,7 +51,8 @@ static void print_def(OMX_PARAM_PORTDEFINITIONTYPE def)
 }
 
 
-int openMAX_encode_fd(int yuv_fd, FILE*h264_fp)
+//int openMAX_encode_fd(int yuv_fd, FILE*h264_fp)
+int openMAX_encode_fd(struct camera *cam, FILE *yuv_fp, FILE*h264_fp)
 {
 
    OMX_VIDEO_PARAM_PORTFORMATTYPE format;
@@ -202,24 +203,25 @@ int openMAX_encode_fd(int yuv_fd, FILE*h264_fp)
 
 
    fd_set fds;
-   //int frame_len = 0;
-   ssize_t frame_len = 0;
+   int frame_len = 0;
+   //ssize_t frame_len = 0;
    struct timeval tm;
    int ret_code = 1;
-   int  buf_size = SIZE;
+   //int  buf_size = SIZE;
    do {
       buf = ilclient_get_input_buffer(video_encode, 200, 1);
       if (buf == NULL) {
           printf("Doh, no buffers for me!\n");
       }
       else {
-         char *frame = (char*)buf->pBuffer;
+         uint8 *frame = (uint8*)buf->pBuffer;
          for(;;){
 	        FD_ZERO(&fds);
-	        FD_SET(yuv_fd, &fds);
+	        FD_SET(cam->camera_fd, &fds);
+
 	        tm.tv_sec = 2;
 	        tm.tv_usec = 0;
-	        int ret = select(yuv_fd + 1, &fds, NULL, NULL, &tm);
+	        int ret = select(cam->camera_fd + 1, &fds, NULL, NULL, &tm);
 	        switch(ret)
 	        {
 	        case -1:
@@ -236,22 +238,18 @@ int openMAX_encode_fd(int yuv_fd, FILE*h264_fp)
 		    default:
 	            /* fill it */
 	            //generate_test_card(buf->pBuffer, &buf->nFilledLen, framenumber++);
-                frame_len = read(yuv_fd, frame, buf_size);
-                if(frame_len == 0){
+                //frame_len = read(yuv_fd, frame, buf_size);
+			    frame_len = read_frame_from_camera(cam, frame);
+                if(frame_len != -1){
                     framenumber +=1;
                     printf("read frame end!\n");
+                    printf("read frame len: %d\n", frame_len);
                     ret_code = 0;
-                } else if(frame_len != buf_size) {
-                    printf("want to read: %d\n", buf_size);
-                    printf("frame_len: %d\n", frame_len);
-                    buf_size = buf_size - frame_len;
-                    frame = frame + frame_len;
-                    //fwrite(pic, frame_len, 1, fp);
-                } else {
-                    framenumber +=1;
-                    printf("read frame success!\n");
-                    ret_code = 0;
-                }
+                } 
+                //else if ( frame_len != buf_size){
+                //    printf("read bytes not enough\n");
+                //    ret_code = -1;
+                //}
              }
              if (ret_code == 0){
                 break; 
@@ -260,7 +258,8 @@ int openMAX_encode_fd(int yuv_fd, FILE*h264_fp)
          if (ret_code == -1){
              goto finally;
          }
-         buf->nFilledLen = SIZE;
+         //buf->nFilledLen = SIZE;
+         buf->nFilledLen = frame_len;
 
          if (OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_encode), buf) !=
              OMX_ErrorNone) {
@@ -329,34 +328,78 @@ finally:
    return status;
 }
 
+//int main(int argc, char **argv)
+//{
+//   if (argc != 3) {
+//      printf("Usage: %s <filename>\n", argv[0]);
+//      exit(1);
+//   }
+//
+//   int yuv_fd = open(argv[1], O_RDONLY, 0);
+//   if (yuv_fd == -1) {
+//      printf("open %s error : %s", argv[1], strerror(errno));
+//      return -1;
+//   }
+//
+//   FILE *h264_fp;
+//   h264_fp = fopen(argv[2], "w");
+//   if (h264_fp == NULL) {
+//      printf("Failed to open '%s' for writing video\n", argv[2]);
+//      exit(1);
+//   }
+//
+//   bcm_host_init();
+//   printf("file : %s %s\n", argv[1], argv[2]);
+//
+//   int ret = 0; 
+//   ret = openMAX_encode_fd(yuv_fd, h264_fp);
+//
+//   close(yuv_fd);
+//   fclose(h264_fp);
+//   return ret;
+//}
 
 int main(int argc, char **argv)
 {
-   if (argc != 3) {
+   if (argc != 2) {
       printf("Usage: %s <filename>\n", argv[0]);
-      exit(1);
+      return -1;
    }
 
-   int yuv_fd = open(argv[1], O_RDONLY, 0);
-   if (yuv_fd == -1) {
+   //init camera
+   char *camera_name = "/dev/video0";
+   struct camera ca = {0};
+   ca.width = WIDTH;
+   ca.height = HEIGHT;
+   ca.device_name = camera_name;
+
+   //init yuv_file
+   FILE *yuv_fp = fopen(argv[1], "w");
+   if (yuv_fp == NULL) {
       printf("open %s error : %s", argv[1], strerror(errno));
       return -1;
    }
 
-   FILE *h264_fp;
-   h264_fp = fopen(argv[2], "w");
+   //init h264_file 
+   FILE *h264_fp = fopen(argv[2], "w");
    if (h264_fp == NULL) {
       printf("Failed to open '%s' for writing video\n", argv[2]);
-      exit(1);
+      return -1;
    }
 
    bcm_host_init();
    printf("file : %s %s\n", argv[1], argv[2]);
 
-   int ret = 0; 
-   ret = openMAX_encode_fd(yuv_fd, h264_fp);
 
-   close(yuv_fd);
+   printf("Now initialize the video for linux \n");
+   int ret = 0; 
+
+   ret = v4l2_init(&ca);
+   if (ret == -1) return 1;
+
+   ret = openMAX_encode_fd(&ca, yuv_fp, h264_fp);
+
+   fclose(yuv_fp);
    fclose(h264_fp);
    return ret;
 }
