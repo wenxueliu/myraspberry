@@ -427,6 +427,7 @@ int v4l2_init(struct camera *cam)
 	init_camera(cam);
 	start_capturing(cam);
     printf("v4l2_init success\n");
+    return 0;
 }
 
 
