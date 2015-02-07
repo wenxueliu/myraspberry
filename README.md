@@ -10,6 +10,13 @@ reference the official of [v4l2]() and [libx264]()
 can not support hardware accelerate.
 * I'm appreciate that the raspberry have OpenMAX make it so powerfull. 
 
+Usage
+============
+cd encode;make
+./hello_encode.bin
+
+TODO:
+
 h2642mp4 
 ============
 sudo apt-get install libmp4v2-2 libmp4v2-dev
